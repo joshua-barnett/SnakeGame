@@ -9,9 +9,16 @@ add_executable(${CMAKE_PROJECT_NAME} ${SNAKE_GAME_SRCS} ${SNAKE_GAME_HDRS})
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_17)
 
-if(NOT EXISTS "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/Assets")
-  message(STATUS "Copying assets to build directory")
-  file(COPY Assets DESTINATION ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+if(DEFINED CMAKE_CONFIGURATION_TYPES)
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/Assets")
+    message(STATUS "Copying assets to build directory")
+    file(COPY Assets DESTINATION ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+  endif()
+else()
+  if(NOT EXISTS "${CMAKE_BINARY_DIR}/Assets")
+    message(STATUS "Copying assets to build directory")
+    file(COPY Assets DESTINATION ${CMAKE_BINARY_DIR})
+  endif()
 endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
@@ -27,26 +34,53 @@ endif()
 
 include(${CMAKE_BINARY_DIR}/conan.cmake)
 
+if(DEFINED CMAKE_CONFIGURATION_TYPES)
+  set(CONAN_GENERATOR cmake_find_package_multi)
+else()
+  set(CONAN_GENERATOR cmake_find_package)
+endif()
+
 conan_cmake_configure(REQUIRES sdl2/2.0.14@bincrafters/stable
                       REQUIRES sdl2_ttf/2.0.15@bincrafters/stable
                       REQUIRES sdl2_image/2.0.5@bincrafters/stable
                       REQUIRES entt/3.0.0@skypjack/stable
-                      GENERATORS cmake_find_package_multi)
+                      GENERATORS ${CONAN_GENERATOR})
 
-foreach(TYPE ${CMAKE_CONFIGURATION_TYPES})
-  conan_cmake_autodetect(settings BUILD_TYPE ${TYPE})
+if(DEFINED CMAKE_CONFIGURATION_TYPES)
+  foreach(TYPE ${CMAKE_CONFIGURATION_TYPES})
+    conan_cmake_autodetect(settings BUILD_TYPE ${TYPE})
+    conan_cmake_install(PATH_OR_REFERENCE .
+                        BUILD missing
+                        REMOTE conan-center
+                        REMOTE bincrafters
+                        SETTINGS ${settings})
+  endforeach()
+else()
+  conan_cmake_autodetect(settings)
   conan_cmake_install(PATH_OR_REFERENCE .
                       BUILD missing
                       REMOTE conan-center
+                      REMOTE bincrafters
                       SETTINGS ${settings})
-endforeach()
+endif()
 
-find_package(sdl2 CONFIG)
-find_package(sdl2_image CONFIG)
-find_package(SDL2_ttf CONFIG)
-find_package(entt CONFIG)
+if(DEFINED CMAKE_CONFIGURATION_TYPES)
+  find_package(SDL2 CONFIG)
+  find_package(SDL2_image CONFIG)
+  find_package(SDL2_ttf CONFIG)
+  find_package(entt CONFIG)
+else()
+  find_package(SDL2)
+  find_package(SDL2_image)
+  find_package(SDL2_ttf)
+  find_package(entt)
+endif()
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SDL2::SDL2main)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE sdl2_image::sdl2_image)
+if(DEFINED CMAKE_CONFIGURATION_TYPES)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SDL2_image::SDL2_image)
+else()
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SDL2_image::SDL2_image)
+endif()
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SDL2_ttf::SDL2_ttf)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE entt::entt)
