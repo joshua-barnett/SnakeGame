@@ -78,7 +78,7 @@ endif()
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SDL2::SDL2main)
 if(DEFINED CMAKE_CONFIGURATION_TYPES)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SDL2_image::SDL2_image)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE sdl2_image::sdl2_image)
 else()
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SDL2_image::SDL2_image)
 endif()
